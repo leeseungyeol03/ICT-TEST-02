@@ -1,0 +1,106 @@
+let todos = JSON.parse(localStorage.getItem("todos") || "[]");
+
+function saveTodos() {
+  localStorage.setItem("todos", JSON.stringify(todos));
+}
+
+function renderTodos() {
+  const list = document.getElementById("todo-list");
+  list.innerHTML = "";
+
+  todos.forEach((todo, idx) => {
+    const card = document.createElement("div");
+    card.className = "todo-card" + (todo.done ? " done" : "");
+
+    // 왼쪽: 체크박스 + 텍스트 or input
+    const left = document.createElement("div");
+    left.className = "todo-left";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.className = "todo-checkbox";
+    checkbox.checked = !!todo.done;
+    checkbox.onchange = () => {
+      todo.done = !todo.done;
+      saveTodos();
+      renderTodos();
+    };
+    left.appendChild(checkbox);
+
+    if (todo.editing) {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "todo-edit-input";
+      input.value = todo.text;
+      input.onblur = saveEdit;
+      input.onkeydown = (e) => {
+        if (e.key === "Enter") input.blur();
+        if (e.key === "Escape") {
+          todo.editing = false;
+          renderTodos();
+        }
+      };
+      setTimeout(() => input.focus(), 0);
+      function saveEdit() {
+        const newText = input.value.trim();
+        if (newText) todo.text = newText;
+        todo.editing = false;
+        saveTodos();
+        renderTodos();
+      }
+      left.appendChild(input);
+    } else {
+      const text = document.createElement("span");
+      text.className = "todo-text";
+      text.textContent = todo.text;
+      left.appendChild(text);
+    }
+
+    // 오른쪽: 수정, 삭제
+    const actions = document.createElement("div");
+    actions.className = "todo-actions";
+
+    const editBtn = document.createElement("button");
+    editBtn.className = "action-btn edit-btn";
+    editBtn.innerHTML = "&#9998;"; // 연필 아이콘
+    editBtn.onclick = () => {
+      todos.forEach(t => t.editing = false);
+      todo.editing = true;
+      renderTodos();
+    };
+
+    const delBtn = document.createElement("button");
+    delBtn.className = "action-btn delete-btn";
+    delBtn.innerHTML = "&#8722;"; // 빼기 기호
+    delBtn.onclick = () => {
+      todos.splice(idx, 1);
+      saveTodos();
+      renderTodos();
+    };
+
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+
+    card.appendChild(left);
+    card.appendChild(actions);
+    list.appendChild(card);
+  });
+}
+
+function addTodo() {
+  const input = document.getElementById("todo-input");
+  const value = input.value.trim();
+  if (!value) return;
+  todos.push({ text: value, done: false, editing: false });
+  input.value = "";
+  saveTodos();
+  renderTodos();
+}
+
+document.getElementById("add-btn").onclick = addTodo;
+document.getElementById("todo-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") addTodo();
+});
+
+// 첫 렌더
+renderTodos();
